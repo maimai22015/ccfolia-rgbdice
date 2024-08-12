@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ccfolia-rgb-dice
 // @namespace    http://tampermonkey.net/
-// @version      0.1a
-// @description  ccfolia.comで3d256を振った時にカラーコードを表示させる。 use with geminiAI
+// @version      0.1b
+// @description  ccfolia.comで3d256/3b256を振った時にカラーコードを表示させる。 use with geminiAI
 // @author       maimai@ytpmv.info
 // @match        https://ccfolia.com/rooms/*
 // @grant        none
@@ -41,10 +41,6 @@
                     const hexValues = items.map(num => num.toString(16).padStart(2, '0')); // 16進数に変換し、2桁にゼロ埋め
                     const colorCode = `#${hexValues.join('')}`; // 色コードを作成
 
-                    // 子要素の最後にspan要素を作成し、色コードを表示
-                    const colorSpan = document.createElement('span');
-                    colorSpan.textContent = `(${colorCode})`;
-
                     // Observerを一時停止
                     observer.disconnect();
 
@@ -67,6 +63,46 @@
                 };
             });
         }
+
+        if (element.innerHTML.startsWith('3b256') || element.innerHTML.startsWith('3B256')) {
+
+            // 子要素をすべて取得し、色を変更
+            const childElements = element.querySelectorAll('*');
+            childElements.forEach(child => {
+            let isProcessed = false; // 各要素が処理済みかどうかを管理するフラグ
+
+            // 子要素のtextContentから"[]"内の文字列を抽出・分割
+            const textContent = child.textContent;
+            const extractedText = textContent.split(" ＞ ")[1];
+            if(extractedText==undefined){
+                return;
+            }
+            const items = extractedText.split(',').map(Number); // 文字列を数値に変換
+            const hexValues = items.map(num => num.toString(16).padStart(2, '0')); // 16進数に変換し、2桁にゼロ埋め
+            const colorCode = `#${hexValues.join('')}`; // 色コードを作成
+
+            // Observerを一時停止
+            observer.disconnect();
+
+            if (!child.dataset.processed) { // 処理済みフラグをチェック
+                // 子要素の最後にspan要素を作成し、色コードを表示
+                const colorSpan = document.createElement('span');
+                colorSpan.textContent = `\n■ ${colorCode}`;
+                child.appendChild(colorSpan);
+
+                // 処理済みフラグを設定
+                child.dataset.processed = true;
+                
+            }
+            child.style.color=colorCode;
+
+            // Observerを再開
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+    }
         });
     }
 
